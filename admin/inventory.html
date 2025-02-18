@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management - LuxeCart Admin</title>
+    
+    <!-- CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+    
+    <style>
+        .inventory-filters {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .stock-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+        .stock-low {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+        }
+        .stock-medium {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+        }
+        .stock-high {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+        }
+        .product-image {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .barcode-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="admin-panel">
+    <div class="wrapper">
+        <!-- Sidebar (reused from dashboard) -->
+        <nav id="sidebar" class="active">
+            <!-- Sidebar content -->
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <div class="container-fluid">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="mb-1">Inventory Management</h4>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                                <li class="breadcrumb-item active">Inventory</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary" id="importInventory">
+                            <i class="fas fa-file-import me-1"></i> Import
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                            <i class="fas fa-plus me-1"></i> Add Product
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Inventory Filters -->
+                <div class="inventory-filters">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select select2" id="categoryFilter">
+                                <option value="">All Categories</option>
+                                <option>Electronics</option>
+                                <option>Fashion</option>
+                                <option>Home & Living</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Stock Status</label>
+                            <select class="form-select select2" id="stockFilter">
+                                <option value="">All Status</option>
+                                <option value="low">Low Stock</option>
+                                <option value="medium">Medium Stock</option>
+                                <option value="high">High Stock</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Price Range</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" placeholder="Min" id="priceMin">
+                                <input type="number" class="form-control" placeholder="Max" id="priceMax">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Supplier</label>
+                            <select class="form-select select2" id="supplierFilter">
+                                <option value="">All Suppliers</option>
+                                <option>TechCorp Inc.</option>
+                                <option>Fashion Hub</option>
+                                <option>Home Essentials Ltd.</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <table id="inventoryTable" class="table table-hover dt-responsive nowrap w-100">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" class="form-check-input" id="selectAll">
+                                    </th>
+                                    <th>Product</th>
+                                    <th>SKU</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Supplier</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProductForm" class="needs-validation" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Product Name</label>
+                                <input type="text" class="form-control" required>
+                                <div class="invalid-feedback">Please enter product name</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SKU</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="generateSKU">
+                                        Generate
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback">Please enter SKU</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Category</label>
+                                <select class="form-select select2" required>
+                                    <option value="">Select Category</option>
+                                    <option>Electronics</option>
+                                    <option>Fashion</option>
+                                    <option>Home & Living</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a category</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Supplier</label>
+                                <select class="form-select select2" required>
+                                    <option value="">Select Supplier</option>
+                                    <option>TechCorp Inc.</option>
+                                    <option>Fashion Hub</option>
+                                    <option>Home Essentials Ltd.</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a supplier</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" required>
+                                </div>
+                                <div class="invalid-feedback">Please enter price</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Stock Quantity</label>
+                                <input type="number" class="form-control" required>
+                                <div class="invalid-feedback">Please enter stock quantity</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" rows="3" required></textarea>
+                                <div class="invalid-feedback">Please enter product description</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Reorder Point</label>
+                                <input type="number" class="form-control" required>
+                                <div class="invalid-feedback">Please enter reorder point</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" placeholder="e.g., Warehouse A, Shelf B3" required>
+                                <div class="invalid-feedback">Please enter storage location</div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="addProductForm" class="btn btn-primary">Add Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Inventory</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Choose File</label>
+                        <input type="file" class="form-control" accept=".csv,.xlsx">
+                        <small class="text-muted">Supported formats: CSV, Excel</small>
+                    </div>
+                    <div class="mb-3">
+                        <a href="#" class="text-decoration-none">
+                            <i class="fas fa-download me-1"></i> Download Template
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="importButton">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.js"></script>
+    <script src="inventory.js"></script>
+</body>
+</html>
